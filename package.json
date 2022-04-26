@@ -1,0 +1,69 @@
+{
+  "name": "bot-whatsapp",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "description": "Whatsapp bot ",
+  "scripts": {
+    "test": "ts-node ./lib/test/index.ts --dev",
+    "lint": "eslint --fix --ext .ts,.json .",
+    "debug": "jest --runInBand --watchAll",
+    "start": "yarn build && node ./dist/lib/main.js --dev",
+    "build": "ttsc -p ./tsconfig.json",
+    "prettier-format": "prettier --config .prettierrc \"lib/*.ts\" \"lib/**/*.ts\" \"lib/**/**/*.ts\" --write"
+  },
+  "repository": {
+    "type": "git",
+    "url": "bot-whatsapp"
+  },
+  "keywords": [
+    "bot",
+    "wa",
+    "botwa",
+    "wabot",
+    "whatsapp",
+    "whatsapp-bot",
+    "bot-whatsapp",
+    "ra-bot",
+    "bot-ra",
+    "ra",
+    "whatsappbot"
+  ],
+  "author": "I`am Ra",
+  "devDependencies": {
+    "@types/jest": "^27.4.1",
+    "@types/node": "^17.0.25",
+    "@typescript-eslint/eslint-plugin": "^5.21.0",
+    "@typescript-eslint/parser": "^5.21.0",
+    "eslint": "^8.14.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "eslint-plugin-simple-import-sort": "^7.0.0",
+    "jest": "^27.5.1",
+    "prettier": "^2.6.2",
+    "ts-jest": "^27.1.4",
+    "ts-node": "^10.7.0",
+    "ttypescript": "^1.5.13",
+    "typescript": "^4.6.3"
+  },
+  "dependencies": {
+    "@adiwajshing/baileys": "^4.1.0",
+    "@hapi/boom": "^9.1.4",
+    "@types/babel__core": "^7.1.19",
+    "@types/bluebird": "^3.5.36",
+    "@types/lodash": "^4.14.182",
+    "@types/sharp": "^0.30.2",
+    "axios": "^0.26.1",
+    "bluebird": "^3.7.2",
+    "chalk": "4.1.2",
+    "dotenv": "^16.0.0",
+    "lodash": "^4.17.21",
+    "moment-timezone": "^0.5.34",
+    "mongodb": "^4.5.0",
+    "performance-now": "^2.1.0",
+    "pino": "^7.10.0",
+    "qrcode-terminal": "^0.12.0",
+    "sharp": "^0.30.4",
+    "utility-types": "^3.10.0"
+  }
+}
