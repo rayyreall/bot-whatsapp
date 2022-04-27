@@ -15,10 +15,14 @@ export function Config(config: Partial<Whatsapp.MyEvents>) {
 					config.open = this.isOpen;
 				if (config.enable == undefined) config.enable = true;
 				if (typeof config.errorHandle == "undefined") config.errorHandle = {};
-				if (typeof config.errorHandle.autoDisable == "undefined") config.errorHandle.autoDisable = true;
-				if (typeof config.errorHandle.attempts == "undefined") config.errorHandle.attempts = 1;
-				if (typeof config.errorHandle.ownerCall == "undefined") config.errorHandle.ownerCall = true;
-				if (typeof config.errorHandle.warningUser == "undefined") config.errorHandle.warningUser = true;
+				if (typeof config.errorHandle.autoDisable == "undefined")
+					config.errorHandle.autoDisable = true;
+				if (typeof config.errorHandle.attempts == "undefined")
+					config.errorHandle.attempts = 1;
+				if (typeof config.errorHandle.ownerCall == "undefined")
+					config.errorHandle.ownerCall = true;
+				if (typeof config.errorHandle.warningUser == "undefined")
+					config.errorHandle.warningUser = true;
 				if (!config.eventName)
 					config.eventName = crypto.randomBytes(30).toString("hex");
 				if (!config.costumePrefix)
@@ -47,6 +51,6 @@ export function Get(require: keyof Whatsapp.TypeRequired, ...args: any[]) {
 		target.logger = original.some((x) => x == "logger");
 		target.request = original.some((x) => x == "request");
 		target.API = original.some((x) => x.toUpperCase() == "API");
-		target.ev = original.some((x) => x == "ev")
+		target.ev = original.some((x) => x == "ev");
 	};
 }

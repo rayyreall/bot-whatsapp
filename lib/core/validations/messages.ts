@@ -5,7 +5,7 @@ import type {
 	MediaType,
 } from "@adiwajshing/baileys";
 import lodash from "lodash";
-import EasyDB, { checkPrefix, DEFAULT_PREFIX } from "../../utils";
+import EasyDB, {checkPrefix, DEFAULT_PREFIX} from "../../utils";
 import {downloadContentFromMessage} from "@adiwajshing/baileys";
 import Client from "../clients";
 import Bluebird from "bluebird";
@@ -18,7 +18,7 @@ import type Logger from "../../log";
 import type {MimeType} from "file-type";
 import type {Transform} from "stream";
 import type Whatsapp from "../../types";
-import type { Prefix } from "../../types";
+import type {Prefix} from "../../types";
 
 export class Message
 	extends Client
@@ -73,7 +73,10 @@ export class Message
 			...Config.create().config.ownerNumber,
 			this.getDB("botNumber"),
 		]);
-		this.db.set("realOwner", Config.create().config.ownerNumber[0] || this.getDB("botNumber"));
+		this.db.set(
+			"realOwner",
+			Config.create().config.ownerNumber[0] || this.getDB("botNumber"),
+		);
 		if (!this.getDB("message")?.message) return;
 		if (!this.getDB("type")) return;
 		if (
@@ -290,7 +293,7 @@ export class Message
 			"isOwner",
 			this.getDB("ownerNumber").includes(this.getDB("sender")),
 		);
-		this.db.set("prefix", checkPrefix(DEFAULT_PREFIX, this.getDB("command")))
+		this.db.set("prefix", checkPrefix(DEFAULT_PREFIX, this.getDB("command")));
 	}
 	public downloadMedia(media: Whatsapp.IMedia, path?: string): Promise<string>;
 	public downloadMedia(path?: string): Promise<string>;
@@ -405,7 +408,7 @@ export class Message
 	public get buttonsID(): string | undefined {
 		return this.getDB("buttonsID");
 	}
-	public get prefix (): Prefix | undefined {
+	public get prefix(): Prefix | undefined {
 		return this.getDB("prefix");
 	}
 	public get bodyQuoted(): string | null | undefined {

@@ -54,6 +54,6 @@ export default class Events implements Whatsapp.EventsOperator {
 	};
 	protected newMsg = async (mess: Message) => {
 		if (!mess.isOwner) return;
-		await Ev.getEvents().commandCall(mess as Whatsapp.ClientType)
+		await Ev.getEvents().commandCall(mess as Whatsapp.ClientType);
 	};
 }

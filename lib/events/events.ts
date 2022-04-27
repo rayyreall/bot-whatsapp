@@ -10,7 +10,7 @@ import type {Prefix} from "../types";
 import {checkPrefix, DEFAULT_PREFIX} from "../utils";
 import chalk from "chalk";
 import moment from "moment-timezone";
-import Controller  from "../routers/controllers";
+import Controller from "../routers/controllers";
 import NodeCache from "node-cache";
 import lodash from "lodash";
 import performa from "performance-now";
@@ -18,7 +18,7 @@ import config from "../database/config";
 
 moment.tz.setDefault("Asia/Jakarta").locale("id");
 
-const antiSpam: Map<string, boolean> = new Map<string, boolean>()
+const antiSpam: Map<string, boolean> = new Map<string, boolean>();
 
 export class Events {
 	private location: string | undefined;
@@ -61,7 +61,7 @@ export class Events {
 	public async commandCall(client: Whatsapp.ClientType) {
 		return new Bluebird(async (resolve, reject) => {
 			let event: Array<Whatsapp.CommandEvents> = this.setToArrayEvents();
-			let m: any
+			let m: any;
 			let participations = (): Promise<unknown> =>
 				new Bluebird.Promise(async () =>
 					event.filter(
@@ -74,14 +74,14 @@ export class Events {
 										logger: v.logger ? this.log : void 0,
 										API: v.API ? Controller : void 0,
 										ev: v.ev ? Events.getEvents() : void 0,
-										...v?.optionsFunc
+										...v?.optionsFunc,
 									};
 									m = await v.run.call(conf, client);
-									conf = null as any
+									conf = null as any;
 								}).catch((e) => {
 									if (e instanceof Error) {
 										this.log!.error(e.message);
-										resolve(void 0)
+										resolve(void 0);
 									}
 									m = null;
 								});
@@ -118,17 +118,27 @@ export class Events {
 									))
 							) {
 								let idSpam: string = client.sender;
-								if (antiSpam.has(`${idSpam}::2`)) return void this.log!.warn(`${idSpam} is spamming`);
+								if (antiSpam.has(`${idSpam}::2`))
+									return void this.log!.warn(`${idSpam} is spamming`);
 								if (antiSpam.has(`${idSpam}::1`)) {
 									antiSpam.set(`${idSpam}::2`, true);
-									return client.reply(client.from, "*「❗」* Mohon maaf kak, anda terdeteksi Spam harap tunggu beberapa saat untuk menggunakan command kembali", client.id);
+									return client.reply(
+										client.from,
+										"*「❗」* Mohon maaf kak, anda terdeteksi Spam harap tunggu beberapa saat untuk menggunakan command kembali",
+										client.id,
+									);
 								}
-								if (!client.isOwner) antiSpam.set(`${idSpam}::1`, true)
+								if (!client.isOwner) antiSpam.set(`${idSpam}::1`, true);
 								if (value.isOwner && !client.isOwner) return;
 								if (value.isGroupMsg && !client.isGroupMsg) return;
-								if (value.isMedia && !client.isMedia) return client.reply(client.from, "*「❗」* Mohon maaf kak, Harap masukkan media kakak untuk menggunakan fitur ini", client.id)
+								if (value.isMedia && !client.isMedia)
+									return client.reply(
+										client.from,
+										"*「❗」* Mohon maaf kak, Harap masukkan media kakak untuk menggunakan fitur ini",
+										client.id,
+									);
 								if (value.enable && (value.execute as unknown)) {
-									let { from, id, realOwner, command } = client;
+									let {from, id, realOwner, command} = client;
 									Bluebird.try(async () => {
 										let conf = {
 											utils: value.utils ? utils : void 0,
@@ -136,7 +146,7 @@ export class Events {
 											logger: value.logger ? this.log : void 0,
 											API: value.API ? Controller : void 0,
 											ev: value.ev ? Events.getEvents() : void 0,
-											...value?.optionsFunc
+											...value?.optionsFunc,
 										};
 										m = await value.execute.call(conf, client);
 										m = null;
@@ -145,29 +155,47 @@ export class Events {
 										.catch((err) => {
 											if (err instanceof Error) {
 												this.log!.error(err.stack);
-												let clearing = () => new Bluebird(() => {
-													setTimeout(() => {
-														if (antiSpam.has(`${idSpam}::2`)) antiSpam.delete(`${idSpam}::2`);
-														if (antiSpam.has(`${idSpam}::1`)) antiSpam.delete(`${idSpam}::1`);
-													}, 7000)
-												})
+												let clearing = () =>
+													new Bluebird(() => {
+														setTimeout(() => {
+															if (antiSpam.has(`${idSpam}::2`))
+																antiSpam.delete(`${idSpam}::2`);
+															if (antiSpam.has(`${idSpam}::1`))
+																antiSpam.delete(`${idSpam}::1`);
+														}, 7000);
+													});
 												clearing();
-												let key: string = lodash.findKey(this.allEvents,  { command: value.command }) as keyof Whatsapp.MyEvents;
-												let cmd: any  = this.getCmd(key) as Whatsapp.MyEvents 
+												let key: string = lodash.findKey(this.allEvents, {
+													command: value.command,
+												}) as keyof Whatsapp.MyEvents;
+												let cmd: any = this.getCmd(key) as Whatsapp.MyEvents;
 												if (value.errorHandle.autoDisable) {
-													cmd.errorHandle.attempts = cmd.errorHandle.attempts === 0 ? 0 : (cmd.errorHandle.attempts! - 1);
-													if (value.errorHandle.attempts === 0) cmd.enable = false;
+													cmd.errorHandle.attempts =
+														cmd.errorHandle.attempts === 0
+															? 0
+															: cmd.errorHandle.attempts! - 1;
+													if (value.errorHandle.attempts === 0)
+														cmd.enable = false;
 													if (value.errorHandle.warningUser) {
-														client.reply(from, "*「❗」* Mohon maaf kak fitur kamu sedang error bot otomatis menghubungi owner", id)
+														client.reply(
+															from,
+															"*「❗」* Mohon maaf kak fitur kamu sedang error bot otomatis menghubungi owner",
+															id,
+														);
 													}
-												} 
+												}
 												if (value.errorHandle.ownerCall) {
-													client.sendText(realOwner, `Fitur Error : ${command}\nID Fitur : ${key}\n Status : ${cmd.enable ? "Enable" : "Disable"}\n\n${err.stack}`)
+													client.sendText(
+														realOwner,
+														`Fitur Error : ${command}\nID Fitur : ${key}\n Status : ${
+															cmd.enable ? "Enable" : "Disable"
+														}\n\n${err.stack}`,
+													);
 												}
 												this.setCommand(key, cmd);
 												cmd = null;
 												m = null;
-												resolve(void 0)
+												resolve(void 0);
 											}
 										})
 										.finally(() => {
@@ -197,9 +225,11 @@ export class Events {
 											);
 											m = null;
 											setTimeout(() => {
-												if (antiSpam.has(`${idSpam}::2`)) antiSpam.delete(`${idSpam}::2`);
-												if (antiSpam.has(`${idSpam}::1`)) antiSpam.delete(`${idSpam}::1`);
-											}, 7000)
+												if (antiSpam.has(`${idSpam}::2`))
+													antiSpam.delete(`${idSpam}::2`);
+												if (antiSpam.has(`${idSpam}::1`))
+													antiSpam.delete(`${idSpam}::1`);
+											}, 7000);
 											resolve(void 0);
 										});
 								}
@@ -240,27 +270,49 @@ export class Events {
 					enumerable: true,
 					configurable: false,
 				});
-			if (build.API) Object.defineProperty(con, "API", { 	
-				value: true,
-				writable: false,
-				enumerable: true,
-				configurable: false, });
-			if (build.ev) Object.defineProperty(con, "ev", {
-				value: true,
-				writable: false,
-				enumerable: true,
-				configurable: false,
-			});
-			let optionalFunc: Array<string> = lodash.keys(lodash.omit(build, ["config", 'utils', 'logger', 'request', 'API', "ev"]));
+			if (build.API)
+				Object.defineProperty(con, "API", {
+					value: true,
+					writable: false,
+					enumerable: true,
+					configurable: false,
+				});
+			if (build.ev)
+				Object.defineProperty(con, "ev", {
+					value: true,
+					writable: false,
+					enumerable: true,
+					configurable: false,
+				});
+			let optionalFunc: Array<string> = lodash.keys(
+				lodash.omit(build, [
+					"config",
+					"utils",
+					"logger",
+					"request",
+					"API",
+					"ev",
+				]),
+			);
 			let optional;
 			if (optionalFunc.length > 0) {
 				optional = lodash.pick(build, optionalFunc);
 			}
 			if (build.config?.open) {
-				build = Object.assign({run: build.run}, build.config, con, optional ? { optionsFunc: optional} : {});
+				build = Object.assign(
+					{run: build.run},
+					build.config,
+					con,
+					optional ? {optionsFunc: optional} : {},
+				);
 				delete build.open;
 			} else {
-				build = Object.assign({execute: build.execute}, build.config, con,  optional ? { optionsFunc: optional} : {});
+				build = Object.assign(
+					{execute: build.execute},
+					build.config,
+					con,
+					optional ? {optionsFunc: optional} : {},
+				);
 				delete build.open;
 			}
 			const name: string = build.eventName.toLowerCase();

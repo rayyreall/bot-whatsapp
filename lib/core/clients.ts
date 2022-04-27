@@ -6,7 +6,7 @@ import Bluebird from "bluebird";
 import Builder from "./cli";
 import EasyDB, {toBuffer, GenerateID, compressImage} from "../utils";
 import type {FileTypeResult, MimeType} from "file-type";
-import { Events } from "../events";
+import {Events} from "../events";
 import mime from "file-type";
 import {generateWAMessageFromContent, proto} from "@adiwajshing/baileys";
 
@@ -181,8 +181,15 @@ export default abstract class Client implements Whatsapp.IClient {
 			return m;
 		}).catch((err) => this.log.error(err));
 	}
-	public async wait (from: string, id: proto.IWebMessageInfo): Promise<proto.WebMessageInfo | void>  {
-		return await this.reply(from, "*⌛* Mohon tunggu sebentar bot sedang melaksanakan perintah", id)
+	public async wait(
+		from: string,
+		id: proto.IWebMessageInfo,
+	): Promise<proto.WebMessageInfo | void> {
+		return await this.reply(
+			from,
+			"*⌛* Mohon tunggu sebentar bot sedang melaksanakan perintah",
+			id,
+		);
 	}
 	public async sendDocument(
 		from: string,
@@ -270,7 +277,7 @@ export default abstract class Client implements Whatsapp.IClient {
 			}
 		});
 	}
-	public async sendButtons (from: string, content: Whatsapp.ButtonsContent) {
+	public async sendButtons(from: string, content: Whatsapp.ButtonsContent) {
 		return new Bluebird(async (resolve) => {
 			if (content.buttons.length > 0) {
 				for (let i = 0; i < content.buttons.length; i++) {
@@ -284,7 +291,7 @@ export default abstract class Client implements Whatsapp.IClient {
 			else if (!content.headerType && content.media) {
 				// belom kelar
 			}
-		})
+		});
 	}
 	public async sendVideo(
 		from: string,

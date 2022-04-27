@@ -4,8 +4,8 @@ import type {MimeType} from "file-type";
 import type {Readable} from "stream";
 import type Logger from "../log";
 import type Builder from "../core/cli";
-import { Prefix } from ".";
-import { Events } from "../events";
+import {Prefix} from ".";
+import {Events} from "../events";
 
 export namespace Whatsapp {
 	export interface EventsOperator {
@@ -48,7 +48,7 @@ export namespace Whatsapp {
 		downloadMedia(path?: string): Promise<string>;
 		downloadMedia(media?: IMedia | string, path?: string): Promise<string>;
 		GetSerialize(): SerializeMessage;
-		serializeJID(jid: string): string 
+		serializeJID(jid: string): string;
 	}
 	export interface IClient {
 		Generate(
@@ -69,7 +69,10 @@ export namespace Whatsapp {
 			content: string | Buffer | Readable,
 			options?: Whatsapp.IOptionsMessage & {isDocs?: boolean},
 		): Promise<proto.IWebMessageInfo | void>;
-		wait (from: string, id: proto.IWebMessageInfo): Promise<proto.WebMessageInfo | void>
+		wait(
+			from: string,
+			id: proto.IWebMessageInfo,
+		): Promise<proto.WebMessageInfo | void>;
 		sendText(
 			from: string,
 			content: string,
@@ -112,7 +115,7 @@ export namespace Whatsapp {
 		relayMessage(
 			content: proto.IWebMessageInfo,
 		): Promise<proto.IWebMessageInfo>;
-		ev: Events 
+		ev: Events;
 	}
 	export type ClientType = IClient & SerializeMessage;
 

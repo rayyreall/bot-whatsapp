@@ -2,8 +2,8 @@ import type Whatsapp from "../types";
 import * as utils from "../utils";
 import axios from "axios";
 import Log from "../log";
-import Controller  from "../routers/controllers";
-import { Events} from "../events";
+import Controller from "../routers/controllers";
+import {Events} from "../events";
 
 export default class Command implements Whatsapp.CommandDefault {
 	constructor(private isOpen: boolean = false) {}
@@ -24,5 +24,5 @@ export default class Command implements Whatsapp.CommandDefault {
 	protected request?: typeof axios;
 	protected logger?: Log;
 	protected API?: typeof Controller;
-	protected ev?: Events
+	protected ev?: Events;
 }

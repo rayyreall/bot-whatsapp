@@ -4,7 +4,7 @@ import * as fs from "fs";
 import crypto from "crypto";
 import sharp from "sharp";
 import Bluebird from "bluebird";
-import parsems, { Parsed } from "parse-ms";
+import parsems, {Parsed} from "parse-ms";
 import type {Prefix} from "../types";
 
 export const searchJSON = <T>(
@@ -130,7 +130,8 @@ export const toBuffer = async function (
 				responseType: "arraybuffer",
 			});
 		else if (isBase64(content)) return Buffer.from(content, "base64");
-		else if (/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/.test(content)) return Buffer.from(content.split(";base64,")[1], "base64");
+		else if (/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/.test(content))
+			return Buffer.from(content.split(";base64,")[1], "base64");
 		else return null;
 	} else {
 		return null;
@@ -190,9 +191,9 @@ export const checkPrefix = (
 };
 
 export const runtime = (): string => {
-	let time: Parsed = parsems(process.uptime() * 1000)
-	return `${time.days} Hari, ${time.hours} Jam, ${time.minutes} Menit, ${time.seconds} Detik`
-}
+	let time: Parsed = parsems(process.uptime() * 1000);
+	return `${time.days} Hari, ${time.hours} Jam, ${time.minutes} Menit, ${time.seconds} Detik`;
+};
 
 export const DEFAULT_PREFIX: string | RegExp | Array<string | RegExp> =
 	/^[°•π÷×¶∆£¢€¥®™+✓_=|~!?@#$%^&.©^]/gi;
