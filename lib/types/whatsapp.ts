@@ -4,6 +4,8 @@ import type {MimeType} from "file-type";
 import type {Readable} from "stream";
 import type Logger from "../log";
 import type Builder from "../core/cli";
+import { Prefix } from ".";
+import { Events } from "../events";
 
 export namespace Whatsapp {
 	export interface EventsOperator {
@@ -22,6 +24,7 @@ export namespace Whatsapp {
 		quotedMsg: proto.IContextInfo;
 		sender: string;
 		botNumber: string;
+		prefix: Prefix | undefined;
 		body: string;
 		buttonsID: string;
 		bodyQuoted: string | null;
@@ -38,6 +41,14 @@ export namespace Whatsapp {
 		isSticker: boolean;
 		ownerNumber: Array<string>;
 		isOwner: boolean;
+		realOwner: string;
+		decryptMedia(media?: IMedia): Promise<Buffer>;
+		ParsedMentions(text: string): Array<string>;
+		downloadMedia(media: IMedia, path?: string): Promise<string>;
+		downloadMedia(path?: string): Promise<string>;
+		downloadMedia(media?: IMedia | string, path?: string): Promise<string>;
+		GetSerialize(): SerializeMessage;
+		serializeJID(jid: string): string 
 	}
 	export interface IClient {
 		Generate(
@@ -58,6 +69,7 @@ export namespace Whatsapp {
 			content: string | Buffer | Readable,
 			options?: Whatsapp.IOptionsMessage & {isDocs?: boolean},
 		): Promise<proto.IWebMessageInfo | void>;
+		wait (from: string, id: proto.IWebMessageInfo): Promise<proto.WebMessageInfo | void>
 		sendText(
 			from: string,
 			content: string,
@@ -100,14 +112,30 @@ export namespace Whatsapp {
 		relayMessage(
 			content: proto.IWebMessageInfo,
 		): Promise<proto.IWebMessageInfo>;
+		ev: Events 
 	}
 	export type ClientType = IClient & SerializeMessage;
 
 	export interface TypeRequired {
-		api?: boolean;
+		API?: boolean;
 		utils?: boolean;
 		logger?: boolean;
 		request?: boolean;
+		ev?: boolean;
+	}
+	export interface IButtons {
+		id?: string;
+		text: string;
+		type?: number;
+	}
+	export interface ButtonsContent {
+		text?: string;
+		subtitle?: string;
+		buttons: IButtons[];
+		headerType?: number;
+		media?: Buffer | string | Readable;
+		isDocs?: boolean;
+		isLocation?: boolean;
 	}
 	export type MediaSupport =
 		| "imageMessage"
@@ -179,6 +207,22 @@ export namespace Whatsapp {
 		eventName: string;
 		group: string;
 		isOwner: boolean;
+		isMedia: boolean;
+		errorHandle: Partial<IErrorHandling>;
+	}
+	export interface AddEvents {
+		utils?: boolean;
+		request?: boolean;
+		logger?: boolean;
+		API?: boolean;
+		optionsFunc?: any;
+		ev?: boolean;
+	}
+	export interface IErrorHandling {
+		autoDisable: boolean;
+		attempts: number;
+		ownerCall: boolean;
+		warningUser: boolean;
 	}
 	export type CommandDefault = MyCmd & MyCommand;
 	export type CommandEvents = CommandDefault & MyEvents;

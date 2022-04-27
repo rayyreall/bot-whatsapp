@@ -60,6 +60,7 @@
     "lodash": "^4.17.21",
     "moment-timezone": "^0.5.34",
     "mongodb": "^4.5.0",
+    "parse-ms": "2.1.0",
     "performance-now": "^2.1.0",
     "pino": "^7.10.0",
     "qrcode-terminal": "^0.12.0",

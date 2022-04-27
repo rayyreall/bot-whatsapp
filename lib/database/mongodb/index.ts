@@ -8,10 +8,7 @@ export default class MongoDB implements MongoConnect {
 	private static instance: MongoDB;
 	private constructor(
 		private url: string,
-		private runScript?: (
-			sessions: string,
-			logger: Log,
-		) => Promise<WASocket>,
+		private runScript?: (sessions: string, logger: Log) => Promise<WASocket>,
 		private config?: MongoOptions,
 	) {
 		this.db = new MongoClient(this.url);
@@ -35,10 +32,9 @@ export default class MongoDB implements MongoConnect {
 			this.log!.info("Connected to MongoDB");
 			if (typeof this.runScript == "function") {
 				this.log!.info("Run Whatsapp bot");
-				await this.runScript(
-					this.config!.sessions,
-					this.log!,
-				).catch((e) => this.log!.error(e));
+				await this.runScript(this.config!.sessions, this.log!).catch((e) =>
+					this.log!.error(e),
+				);
 			}
 		});
 		this.db.once("close", () => {

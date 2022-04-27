@@ -1,17 +1,14 @@
 import Command, {Config, Whatsapp, Get} from ".";
 
-@Config({eventName: "aku anak babi", costumePrefix: {isPrefix: false}})
+@Config({
+	enable: false
+})
 export default class extends Command implements Whatsapp.MyCmd {
 	constructor() {
-		super(true);
+		super(false);
 	}
-	@Get("utils")
+	@Get("logger", "utils")
 	override async run(client: Whatsapp.ClientType): Promise<any> {
-		console.log({
-			client,
-			from: client.from,
-			id: this.utils,
-			ini: this,
-		});
+		this.logger!.info({ from: client.from, id: this.utils!.GenerateID(), api: this.request});
 	}
 }

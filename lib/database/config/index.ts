@@ -16,8 +16,7 @@ export default class Config<T extends object = any>
 		return Config.config as Config<K>;
 	}
 	public readJSON = (path: string): void => {
-		if (!fs.existsSync(path))
-			throw new Error(`${path} does not exist`);
+		if (!fs.existsSync(path)) throw new Error(`${path} does not exist`);
 		this.db = JSON.parse(fs.readFileSync(path, "utf8"));
 	};
 	public get config(): IConfig & T {

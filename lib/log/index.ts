@@ -7,8 +7,7 @@ export default class Logger implements myLogger {
 	constructor(private options: OptionsLogger) {
 		this.setColor = {};
 		this.options.mode = this.options.mode || "dev";
-		if (typeof this.options.color == "undefined")
-			this.options.color = [];
+		if (typeof this.options.color == "undefined") this.options.color = [];
 		if (!this.hasColor("info")) {
 			this.options.color.push({
 				level: "info",
@@ -16,9 +15,7 @@ export default class Logger implements myLogger {
 			});
 		} else {
 			this.options.color[
-				this.options.color.findIndex(
-					(color) => color.level == "info",
-				)
+				this.options.color.findIndex((color) => color.level == "info")
 			].color = chalk.green;
 		}
 		if (!this.hasColor("warn")) {
@@ -28,9 +25,7 @@ export default class Logger implements myLogger {
 			});
 		} else {
 			this.options.color[
-				this.options.color.findIndex(
-					(color) => color.level == "warn",
-				)
+				this.options.color.findIndex((color) => color.level == "warn")
 			].color = chalk.yellow;
 		}
 		if (!this.hasColor("error")) {
@@ -40,9 +35,7 @@ export default class Logger implements myLogger {
 			});
 		} else {
 			this.options.color[
-				this.options.color.findIndex(
-					(color) => color.level == "error",
-				)
+				this.options.color.findIndex((color) => color.level == "error")
 			].color = chalk.red;
 		}
 		if (typeof this.options.color !== "undefined") {
@@ -58,11 +51,7 @@ export default class Logger implements myLogger {
 	};
 	public readonly error = (message: any, ...args: any[]): void => {
 		if (this.options.mode === "client") return;
-		console.error(
-			this.setColor.error!(`[ERROR] :`),
-			message,
-			...args,
-		);
+		console.error(this.setColor.error!(`[ERROR] :`), message, ...args);
 	};
 	public readonly warn = (message: any, ...args: any[]): void => {
 		if (this.options.mode === "client") return;
@@ -74,9 +63,6 @@ export default class Logger implements myLogger {
 	};
 	protected readonly hasColor: Function = (color: LevelColor): boolean => {
 		if (typeof this.options.color == "undefined") return false;
-		else
-			return this.options.color.some(
-				(item) => item.level === color,
-			);
+		else return this.options.color.some((item) => item.level === color);
 	};
 }

@@ -4,6 +4,7 @@ import * as fs from "fs";
 import crypto from "crypto";
 import sharp from "sharp";
 import Bluebird from "bluebird";
+import parsems, { Parsed } from "parse-ms";
 import type {Prefix} from "../types";
 
 export const searchJSON = <T>(
@@ -40,10 +41,7 @@ export const searchJSON = <T>(
 			}
 			for (const k in obj) {
 				if (obj.hasOwnProperty(k)) {
-					let result = searchJSON(
-						obj[k] as {[key: string]: unknown},
-						key,
-					);
+					let result = searchJSON(obj[k] as {[key: string]: unknown}, key);
 					if (result) {
 						return result as T;
 					}
@@ -120,8 +118,7 @@ export const toBuffer = async function (
 	content: string | Buffer | Readable,
 ): Promise<Buffer | null> {
 	if (Buffer.isBuffer(content)) return content;
-	else if (content instanceof Readable)
-		return await toBufferStream(content);
+	else if (content instanceof Readable) return await toBufferStream(content);
 	else if (typeof content == "string") {
 		if (fs.existsSync(content)) return fs.readFileSync(content);
 		else if (checkURL(content))
@@ -133,6 +130,7 @@ export const toBuffer = async function (
 				responseType: "arraybuffer",
 			});
 		else if (isBase64(content)) return Buffer.from(content, "base64");
+		else if (/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/.test(content)) return Buffer.from(content.split(";base64,")[1], "base64");
 		else return null;
 	} else {
 		return null;
@@ -143,13 +141,9 @@ export const compressImage = async (
 	content: string | Buffer | Readable,
 ): Promise<Buffer | undefined> => {
 	return new Bluebird<Buffer | undefined>(async (resolve) => {
-		let buffer: Buffer | undefined =
-			(await toBuffer(content)) || undefined;
+		let buffer: Buffer | undefined = (await toBuffer(content)) || undefined;
 		if (buffer) {
-			buffer = await sharp(buffer)
-				.resize(32)
-				.jpeg({quality: 50})
-				.toBuffer();
+			buffer = await sharp(buffer).resize(32).jpeg({quality: 50}).toBuffer();
 		}
 		resolve(buffer);
 		buffer = undefined;
@@ -174,10 +168,7 @@ export const checkPrefix = (
 				respon = {
 					isMatch: true,
 					prefix: body.match(index)?.[0] as string,
-					body: body.replace(
-						body.match(index)?.[0] as string,
-						"",
-					),
+					body: body.replace(body.match(index)?.[0] as string, ""),
 				};
 				break;
 			}
@@ -197,6 +188,11 @@ export const checkPrefix = (
 	}
 	return respon;
 };
+
+export const runtime = (): string => {
+	let time: Parsed = parsems(process.uptime() * 1000)
+	return `${time.days} Hari, ${time.hours} Jam, ${time.minutes} Menit, ${time.seconds} Detik`
+}
 
 export const DEFAULT_PREFIX: string | RegExp | Array<string | RegExp> =
 	/^[°•π÷×¶∆£¢€¥®™+✓_=|~!?@#$%^&.©^]/gi;

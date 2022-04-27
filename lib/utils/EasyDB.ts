@@ -68,10 +68,7 @@ export default class EasyDB<T> implements Database<T> {
 		value?: any,
 	): Record<string, T> {
 		if (typeof config == "string") {
-			return EasyDB.setObject(this.db, config, value) as Record<
-				string,
-				T
-			>;
+			return EasyDB.setObject(this.db, config, value) as Record<string, T>;
 		}
 		return EasyDB.setObject(this.db, config) as Record<string, T>;
 	}
@@ -137,10 +134,7 @@ export default class EasyDB<T> implements Database<T> {
 		}
 	}
 	public FindAndRemove(key: string): Record<string, T> {
-		return EasyDB.FindAndRemove(this.db, key, true) as Record<
-			string,
-			T
-		>;
+		return EasyDB.FindAndRemove(this.db, key, true) as Record<string, T>;
 	}
 	public static FindAndRemove<T extends object>(
 		obj: T,
@@ -183,10 +177,7 @@ export default class EasyDB<T> implements Database<T> {
 		}
 		return autoSet ? obj : MyDb;
 	}
-	public FindAndSet(
-		Path: string,
-		value: any,
-	): Record<string, T> | undefined {
+	public FindAndSet(Path: string, value: any): Record<string, T> | undefined {
 		return EasyDB.FindAndSet(this.db, Path, value, true);
 	}
 	public static FindAndSet<T extends object, V = any>(
@@ -213,12 +204,7 @@ export default class EasyDB<T> implements Database<T> {
 		if (spesipik.length == 0) {
 			return undefined;
 		}
-		obj = this.setObject(
-			obj,
-			`${spesipik[0]}.${path}`,
-			value,
-			autoSet,
-		);
+		obj = this.setObject(obj, `${spesipik[0]}.${path}`, value, autoSet);
 		return obj;
 	}
 	public FindAllAndSet(
@@ -252,23 +238,14 @@ export default class EasyDB<T> implements Database<T> {
 	): Value {
 		return this.FindSpecificLocation(obj, key)
 			.map((value) => {
-				let conditions: Array<string> = this.ParseCondition(
-					key,
-				).map((v) => v.key);
-				if (
-					!value.endsWith(
-						conditions[conditions.length - 1],
-					)
-				) {
-					value = value.split(
-						conditions[conditions.length - 1],
-					)[0];
+				let conditions: Array<string> = this.ParseCondition(key).map(
+					(v) => v.key,
+				);
+				if (!value.endsWith(conditions[conditions.length - 1])) {
+					value = value.split(conditions[conditions.length - 1])[0];
 					value =
 						(value.endsWith(".")
-							? value.substring(
-									0,
-									value.length - 1,
-							  )
+							? value.substring(0, value.length - 1)
 							: value) +
 						"." +
 						conditions[conditions.length - 1];
@@ -307,23 +284,11 @@ export default class EasyDB<T> implements Database<T> {
 					result += `${value.key}.`;
 				} else if (value.status == "array") {
 					result = `${
-						result.endsWith(".")
-							? result.substring(
-									0,
-									result.length -
-										1,
-							  )
-							: ""
+						result.endsWith(".") ? result.substring(0, result.length - 1) : ""
 					}[${value.index}].`;
 				} else if (value.status == "all") {
 					result = `${
-						result.endsWith(".")
-							? result.substring(
-									0,
-									result.length -
-										1,
-							  )
-							: ""
+						result.endsWith(".") ? result.substring(0, result.length - 1) : ""
 					}(.*)${value.key}.`;
 				}
 			});
@@ -340,15 +305,13 @@ export default class EasyDB<T> implements Database<T> {
 		return Object.keys(obj)
 			.filter((key) => obj[key as keyof T] instanceof Object)
 			.map((key) =>
-				this.DeepObject(
-					obj[key as keyof T] as unknown as T,
-				).map((k) => `${key}.${k}`),
+				this.DeepObject(obj[key as keyof T] as unknown as T).map(
+					(k) => `${key}.${k}`,
+				),
 			)
 			.reduce((x, y) => x.concat(y), Object.keys(obj));
 	}
-	public static GetAllPathsLocated<T extends object>(
-		obj: T,
-	): Array<string> {
+	public static GetAllPathsLocated<T extends object>(obj: T): Array<string> {
 		let result: Array<string> = [];
 		for (let key of this.DeepObject(obj)) {
 			let keys: Array<string> = key.split(".");
@@ -363,13 +326,7 @@ export default class EasyDB<T> implements Database<T> {
 			keys.forEach((value) => {
 				if (/^\[\d+\]$/.test(value)) {
 					newKey = `${
-						newKey.endsWith(".")
-							? newKey.substring(
-									0,
-									newKey.length -
-										1,
-							  )
-							: ""
+						newKey.endsWith(".") ? newKey.substring(0, newKey.length - 1) : ""
 					}${value}.`;
 				} else {
 					newKey += value + ".";
@@ -390,9 +347,7 @@ export default class EasyDB<T> implements Database<T> {
 			if (value.includes("[")) {
 				newCondition.push({
 					key: value.split("[")[0],
-					index: parseInt(
-						value.split("[")[1].split("]")[0],
-					),
+					index: parseInt(value.split("[")[1].split("]")[0]),
 					status: "array",
 					inLocated: index,
 				});
@@ -410,9 +365,7 @@ export default class EasyDB<T> implements Database<T> {
 				});
 			}
 		});
-		newCondition = newCondition.sort(
-			(a, b) => a.inLocated - b.inLocated,
-		);
+		newCondition = newCondition.sort((a, b) => a.inLocated - b.inLocated);
 		return newCondition;
 	}
 	public remove(key: string | Array<string>): void {
@@ -422,20 +375,11 @@ export default class EasyDB<T> implements Database<T> {
 			let data: [string, T][] = lodash.entries(this.db);
 			data.forEach((item: [string, T], i: number) => {
 				if (typeof item[1] === "object") {
-					let keys: Array<string> = lodash.keys(
-						item[1],
-					);
-					if (
-						keys.every((value) =>
-							key.includes(value),
-						)
-					) {
+					let keys: Array<string> = lodash.keys(item[1]);
+					if (keys.every((value) => key.includes(value))) {
 						delete this.db[item[0]];
 					}
-				} else if (
-					typeof item[1] === "string" &&
-					key.includes(item[1])
-				) {
+				} else if (typeof item[1] === "string" && key.includes(item[1])) {
 					delete this.db[item[0]];
 				}
 			});

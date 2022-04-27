@@ -5,7 +5,7 @@ import type {
 	MediaType,
 } from "@adiwajshing/baileys";
 import lodash from "lodash";
-import EasyDB from "../../utils";
+import EasyDB, { checkPrefix, DEFAULT_PREFIX } from "../../utils";
 import {downloadContentFromMessage} from "@adiwajshing/baileys";
 import Client from "../clients";
 import Bluebird from "bluebird";
@@ -18,6 +18,7 @@ import type Logger from "../../log";
 import type {MimeType} from "file-type";
 import type {Transform} from "stream";
 import type Whatsapp from "../../types";
+import type { Prefix } from "../../types";
 
 export class Message
 	extends Client
@@ -42,18 +43,13 @@ export class Message
 		return this.db.get(key) as Whatsapp.SerializeMessage[T];
 	}
 	private serialize(msg: proto.IWebMessageInfo) {
-		if (msg.message?.protocolMessage)
-			delete msg.message.protocolMessage;
+		if (msg.message?.protocolMessage) delete msg.message.protocolMessage;
 		if (msg.message?.senderKeyDistributionMessage)
 			delete msg.message.senderKeyDistributionMessage;
-		if (msg.message?.messageContextInfo)
-			delete msg.message.messageContextInfo;
+		if (msg.message?.messageContextInfo) delete msg.message.messageContextInfo;
 		if (msg.key) {
 			this.db.set("from", this.serializeJID(msg.key.remoteJid!));
-			this.db.set(
-				"isGroupMsg",
-				this.getDB("from").endsWith("@g.us"),
-			);
+			this.db.set("isGroupMsg", this.getDB("from").endsWith("@g.us"));
 			this.db.set("fromMe", msg.key.fromMe);
 			this.db.set("pushName", msg.pushName);
 			this.db.set(
@@ -64,32 +60,20 @@ export class Message
 					? String(msg.key.participant)
 					: msg.key.remoteJid,
 			);
-			this.db.set(
-				"sender",
-				this.serializeJID(this.getDB("sender")),
-			);
+			this.db.set("sender", this.serializeJID(this.getDB("sender")));
 		}
 		this.db.set(
 			"message",
-			JSON.parse(
-				JSON.stringify(
-					msg.message?.ephemeralMessage || msg,
-				),
-			),
+			JSON.parse(JSON.stringify(msg.message?.ephemeralMessage || msg)),
 		);
 		this.db.set("id", JSON.parse(JSON.stringify(msg)));
-		this.db.set(
-			"type",
-			lodash.keys(this.getDB("message")?.message || {})[0],
-		);
-		this.db.set(
-			"botNumber",
-			this.serializeJID(this.sock?.user?.id as string),
-		);
+		this.db.set("type", lodash.keys(this.getDB("message")?.message || {})[0]);
+		this.db.set("botNumber", this.serializeJID(this.sock?.user?.id as string));
 		this.db.set("ownerNumber", [
 			...Config.create().config.ownerNumber,
 			this.getDB("botNumber"),
 		]);
+		this.db.set("realOwner", Config.create().config.ownerNumber[0] || this.getDB("botNumber"));
 		if (!this.getDB("message")?.message) return;
 		if (!this.getDB("type")) return;
 		if (
@@ -107,9 +91,7 @@ export class Message
 			);
 			this.db.set(
 				"typeQuoted",
-				lodash.keys(
-					this.getDB("quotedMsg")?.quotedMessage,
-				)[0],
+				lodash.keys(this.getDB("quotedMsg")?.quotedMessage)[0],
 			);
 		}
 		let m: any = this.getDB("message")?.message?.[this.getDB("type")];
@@ -117,8 +99,7 @@ export class Message
 		this.db.set(
 			"body",
 			this.getDB("message")?.message?.conversation ||
-				this.getDB("message").message?.extendedTextMessage
-					?.text ||
+				this.getDB("message").message?.extendedTextMessage?.text ||
 				EasyDB.FindAndGet(m, "*caption") ||
 				EasyDB.FindAndGet(m, "*selectedDisplayText") ||
 				EasyDB.FindAndGet(m, "*title") ||
@@ -139,10 +120,7 @@ export class Message
 		if (this.getDB("quotedMsg"))
 			this.db.set(
 				"mentioned",
-				Number(
-					this.getDB("quotedMsg")?.mentionedJid
-						?.length,
-				) > 0
+				Number(this.getDB("quotedMsg")?.mentionedJid?.length) > 0
 					? this.getDB("quotedMsg").mentionedJid!
 					: this.getDB("quotedMsg")?.participant
 					? [this.getDB("quotedMsg")?.participant]
@@ -151,34 +129,28 @@ export class Message
 		if (this.getDB("quotedMsg")?.quotedMessage) {
 			this.db.set(
 				"bodyQuoted",
-				this.getDB("quotedMsg")?.quotedMessage
-					?.conversation ||
+				this.getDB("quotedMsg")?.quotedMessage?.conversation ||
 					EasyDB.FindAndGet(
-						this.getDB("quotedMsg")
-							?.quotedMessage as object,
+						this.getDB("quotedMsg")?.quotedMessage as object,
 						"*text",
 					) ||
 					EasyDB.FindAndGet(
-						this.getDB("quotedMsg")
-							?.quotedMessage as object,
+						this.getDB("quotedMsg")?.quotedMessage as object,
 						"*caption",
 					) ||
 					EasyDB.FindAndGet(
-						this.getDB("quotedMsg")
-							?.quotedMessage as object,
+						this.getDB("quotedMsg")?.quotedMessage as object,
 						"*selectedDisplayText",
 					) ||
 					EasyDB.FindAndGet(
-						this.getDB("quotedMsg")
-							?.quotedMessage as object,
+						this.getDB("quotedMsg")?.quotedMessage as object,
 						"*title",
 					),
 			);
 			if (typeof this.getDB("bodyQuoted") === "object")
 				this.db.set(
 					"bodyQuoted",
-					lodash.values(this.getDB("bodyQuoted"))[0] ||
-						"",
+					lodash.values(this.getDB("bodyQuoted"))[0] || "",
 				);
 		}
 		let [command, ...args] = this.getDB("body")?.split(" ") || [];
@@ -208,30 +180,19 @@ export class Message
 				file: lodash
 					.values(
 						lodash.pick(
-							mediaSupport.includes(
-								this.getDB("type"),
-							)
-								? this.getDB("message")
-										.message
-								: this.getDB(
-										"quotedMsg",
-								  )?.quotedMessage,
+							mediaSupport.includes(this.getDB("type"))
+								? this.getDB("message").message
+								: this.getDB("quotedMsg")?.quotedMessage,
 							mediaSupport,
 						),
 					)
-					.filter(
-						(v) => !!v,
-					)[0] as proto.IMessage[Whatsapp.MediaSupport],
+					.filter((v) => !!v)[0] as proto.IMessage[Whatsapp.MediaSupport],
 				mimetype: mediaSupport.includes(this.getDB("type"))
 					? (this.getDB("message")?.message?.[
-							this.getDB(
-								"type",
-							) as Whatsapp.MediaSupport
+							this.getDB("type") as Whatsapp.MediaSupport
 					  ]?.mimetype as MimeType)
 					: (this.getDB("quotedMsg")?.quotedMessage![
-							this.getDB(
-								"typeQuoted",
-							) as Whatsapp.MediaSupport
+							this.getDB("typeQuoted") as Whatsapp.MediaSupport
 					  ]?.mimetype as MimeType),
 			});
 			m = this.getDB("media");
@@ -245,69 +206,43 @@ export class Message
 			this.db.set("media", {
 				type: mediaSupport.includes(
 					lodash.keys(
-						this.getDB("message")?.message
-							?.viewOnceMessage!.message,
+						this.getDB("message")?.message?.viewOnceMessage!.message,
 					)[0] as keyof proto.IMessage,
 				)
 					? lodash.keys(
-							this.getDB("message")?.message
-								?.viewOnceMessage!
-								.message,
+							this.getDB("message")?.message?.viewOnceMessage!.message,
 					  )[0]
 					: (lodash.keys(
-							this.getDB("quotedMsg")
-								?.quotedMessage
-								?.viewOnceMessage
-								?.message,
+							this.getDB("quotedMsg")?.quotedMessage?.viewOnceMessage?.message,
 					  )[0] as keyof proto.IMessage),
 				file: lodash
 					.values(
 						lodash.pick(
 							mediaSupport.includes(
 								lodash.keys(
-									this.getDB(
-										"message",
-									)?.message
-										?.viewOnceMessage!
-										.message,
+									this.getDB("message")?.message?.viewOnceMessage!.message,
 								)[0] as keyof proto.IMessage,
 							)
-								? this.getDB("message")
-										?.message
-										?.viewOnceMessage!
-										.message
-								: this.getDB(
-										"quotedMsg",
-								  )?.quotedMessage
-										?.viewOnceMessage!
+								? this.getDB("message")?.message?.viewOnceMessage!.message
+								: this.getDB("quotedMsg")?.quotedMessage?.viewOnceMessage!
 										.message,
 							mediaSupport,
 						),
 					)
-					.filter(
-						(v) => !!v,
-					)[0] as proto.IMessage[Whatsapp.MediaSupport],
+					.filter((v) => !!v)[0] as proto.IMessage[Whatsapp.MediaSupport],
 				mimetype: mediaSupport.includes(
 					lodash.keys(
-						this.getDB("message")?.message
-							?.viewOnceMessage!.message,
+						this.getDB("message")?.message?.viewOnceMessage!.message,
 					)[0] as keyof proto.IMessage,
 				)
-					? (this.getDB("message")?.message
-							?.viewOnceMessage?.message?.[
+					? (this.getDB("message")?.message?.viewOnceMessage?.message?.[
 							lodash.keys(
-								this.getDB("message")
-									?.message
-									?.viewOnceMessage!
-									.message,
+								this.getDB("message")?.message?.viewOnceMessage!.message,
 							)[0] as Whatsapp.MediaSupport
 					  ]?.mimetype as MimeType)
-					: (this.getDB("quotedMsg")?.quotedMessage
-							?.viewOnceMessage?.message?.[
+					: (this.getDB("quotedMsg")?.quotedMessage?.viewOnceMessage?.message?.[
 							lodash.keys(
-								this.getDB("quotedMsg")
-									?.quotedMessage
-									?.viewOnceMessage
+								this.getDB("quotedMsg")?.quotedMessage?.viewOnceMessage
 									?.message,
 							)[0] as Whatsapp.MediaSupport
 					  ]?.mimetype as MimeType),
@@ -319,16 +254,12 @@ export class Message
 		}
 		this.db.set(
 			"isMedia",
-			[
-				"imageMessage",
-				"videoMessage",
-				"viewOnceMessage",
-			].includes(this.getDB("type")) ||
-				[
-					"imageMessage",
-					"videoMessage",
-					"viewOnceMessage",
-				].includes(this.getDB("typeQuoted")),
+			["imageMessage", "videoMessage", "viewOnceMessage"].includes(
+				this.getDB("type"),
+			) ||
+				["imageMessage", "videoMessage", "viewOnceMessage"].includes(
+					this.getDB("typeQuoted"),
+				),
 		);
 		this.db.set(
 			"isAudio",
@@ -359,26 +290,16 @@ export class Message
 			"isOwner",
 			this.getDB("ownerNumber").includes(this.getDB("sender")),
 		);
+		this.db.set("prefix", checkPrefix(DEFAULT_PREFIX, this.getDB("command")))
 	}
-	public downloadMedia(
-		media: Whatsapp.IMedia,
-		path?: string,
-	): Promise<string>;
+	public downloadMedia(media: Whatsapp.IMedia, path?: string): Promise<string>;
 	public downloadMedia(path?: string): Promise<string>;
-	public async downloadMedia(
-		media?: Whatsapp.IMedia | string,
-		path?: string,
-	) {
+	public async downloadMedia(media?: Whatsapp.IMedia | string, path?: string) {
 		return new Bluebird<string>(async (resolve, reject) => {
-			if (
-				typeof media === "undefined" ||
-				typeof this.media === "undefined"
-			)
+			if (typeof media === "undefined" || typeof this.media === "undefined")
 				return reject(new Error("Media not found"));
-			let m: Whatsapp.IMedia =
-				typeof media === "string" ? this.media! : media;
-			let Path: string | undefined =
-				typeof media === "string" ? media : path;
+			let m: Whatsapp.IMedia = typeof media === "string" ? this.media! : media;
+			let Path: string | undefined = typeof media === "string" ? media : path;
 			if (typeof Path !== "string")
 				Path = p.join(
 					__dirname,
@@ -400,37 +321,28 @@ export class Message
 		return (
 			text
 				.match(/@(0|[0-9]{4,16})/g)
-				?.map(
-					(values: string) =>
-						values.split("@")[1] +
-						"@s.whatsapp.net",
-				) || []
+				?.map((values: string) => values.split("@")[1] + "@s.whatsapp.net") ||
+			[]
 		);
 	}
 	public async decryptMedia(media?: Whatsapp.IMedia): Promise<Buffer> {
 		return new Bluebird<Buffer>(async (resolve, reject) => {
-			if (
-				typeof media === "undefined" ||
-				typeof this.media === "undefined"
-			)
+			if (typeof media === "undefined" || typeof this.media === "undefined")
 				return reject(new Error("Media not found"));
 			let buffer: Buffer | null = Buffer.from([]);
 			try {
-				let Stream: Transform | null =
-					await downloadContentFromMessage(
-						(media?.file as DownloadableMessage) ||
-							(this.media
-								?.file as DownloadableMessage),
-						media.type as MediaType,
-					);
+				let Stream: Transform | null = await downloadContentFromMessage(
+					(media?.file as DownloadableMessage) ||
+						(this.media?.file as DownloadableMessage),
+					media.type as MediaType,
+				);
 				for await (const chunk of Stream) {
 					buffer = Buffer.concat([buffer, chunk]);
 				}
 				resolve(buffer);
 				Stream = null;
 			} catch (err) {
-				if (err instanceof Error)
-					reject(new Error(err.stack));
+				if (err instanceof Error) reject(new Error(err.stack));
 			} finally {
 				buffer = null;
 			}
@@ -463,6 +375,9 @@ export class Message
 	public get id(): proto.IWebMessageInfo {
 		return this.getDB("id");
 	}
+	public get realOwner(): string {
+		return this.getDB("realOwner");
+	}
 	public get message(): proto.IFutureProofMessage {
 		return this.getDB("message");
 	}
@@ -489,6 +404,9 @@ export class Message
 	}
 	public get buttonsID(): string | undefined {
 		return this.getDB("buttonsID");
+	}
+	public get prefix (): Prefix | undefined {
+		return this.getDB("prefix");
 	}
 	public get bodyQuoted(): string | null | undefined {
 		return this.getDB("bodyQuoted");

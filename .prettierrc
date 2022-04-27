@@ -14,5 +14,5 @@
     "useTabs": true,
     "vueIndentScriptAndStyle": false,
     "printWidth": 80,
-    "tabWidth": 7
+    "tabWidth": 2
   }

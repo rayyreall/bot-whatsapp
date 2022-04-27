@@ -5,12 +5,10 @@ export const fetchNewWAVersions = async (): Promise<
 	[number, number, number]
 > => {
 	try {
-		const fetchData: AxiosResponse = await axios.get(
-			DEFAULT_URL_WA_VERSIONS,
-		);
-		return (
-			fetchData.data.currentVersion.split(".") as Array<string>
-		).map((version) => parseInt(version)) as [number, number, number];
+		const fetchData: AxiosResponse = await axios.get(DEFAULT_URL_WA_VERSIONS);
+		return (fetchData.data.currentVersion.split(".") as Array<string>).map(
+			(version) => parseInt(version),
+		) as [number, number, number];
 	} catch (e) {
 		throw e;
 	}

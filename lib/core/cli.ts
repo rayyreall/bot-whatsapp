@@ -20,13 +20,7 @@ class createMetadata {
 	public options: Whatsapp.IOptionsMessage | undefined;
 	private mediaType: Array<keyof Whatsapp.ContentData>;
 	constructor(private sock: WASocket) {
-		this.mediaType = [
-			"image",
-			"video",
-			"audio",
-			"document",
-			"sticker",
-		];
+		this.mediaType = ["image", "video", "audio", "document", "sticker"];
 	}
 	public async Builder(): Promise<proto.WebMessageInfo> {
 		let msg: proto.WebMessageInfo;
@@ -43,8 +37,7 @@ class createMetadata {
 						? this.content
 						: {
 								text: this.content,
-								...this.options
-									.extendedInfo,
+								...this.options.extendedInfo,
 						  },
 			};
 		} else {
@@ -57,31 +50,23 @@ class createMetadata {
 								[this.keyName?.replace(
 									"Message",
 									"",
-								) as keyof AnyMessageContent]:
-									await this.ParseContent(),
+								) as keyof AnyMessageContent]: await this.ParseContent(),
 							} as keyof AnyMessageContent,
 							{
-								userJid: this.sock
-									.authState.creds
-									.me!.id,
-								upload: this.sock
-									.waUploadToServer,
+								userJid: this.sock.authState.creds.me!.id,
+								upload: this.sock.waUploadToServer,
 								messageId: GenerateID(),
 							},
 						).catch((e) => {
 							throw e;
 						})
-					)?.message?.[
-						this.keyName as keyof proto.IMessage
-					] as proto.IMessage),
+					)?.message?.[this.keyName as keyof proto.IMessage] as proto.IMessage),
 				},
 			};
 		}
 		if (
 			this.options.viewOnce &&
-			["imageMessage", "videoMessage"].includes(
-				String(this.keyName),
-			)
+			["imageMessage", "videoMessage"].includes(String(this.keyName))
 		) {
 			EasyDB.FindAndSetWithPath(
 				metadata,
@@ -97,24 +82,17 @@ class createMetadata {
 					this.options.caption,
 				);
 			metadata = {
-				viewOnceMessage:
-					proto.FutureProofMessage.fromObject({
-						message: proto.Message.fromObject({
-							...EasyDB.FindAndGet(
-								metadata,
-								String(
-									`*${this.keyName}`,
-								),
-							),
-						}),
+				viewOnceMessage: proto.FutureProofMessage.fromObject({
+					message: proto.Message.fromObject({
+						...EasyDB.FindAndGet(metadata, String(`*${this.keyName}`)),
 					}),
+				}),
 			};
 		}
 		if (metadata.audioMessage) {
 			if (this.options.ptt) metadata.audioMessage.ptt = true;
 			if (this.options.seconds)
-				metadata.audioMessage.seconds =
-					this.options.seconds;
+				metadata.audioMessage.seconds = this.options.seconds;
 		}
 		if (this.options.jpegThumbnail)
 			EasyDB.FindAndSet(
@@ -124,9 +102,7 @@ class createMetadata {
 			);
 		if (this.options.quoted)
 			this.options.contextInfo = Object.assign(
-				this.options.contextInfo
-					? this.options.contextInfo
-					: {},
+				this.options.contextInfo ? this.options.contextInfo : {},
 				{quotedMessage: this.options.quoted},
 			);
 		if (this.options.fileName && metadata.documentMessage)
@@ -140,16 +116,9 @@ class createMetadata {
 		if (this.options.contextInfo) {
 			let ctx: proto.IContextInfo | undefined;
 			if (!EasyDB.FindHas(metadata, "*contextInfo")) {
-				EasyDB.setObject(
-					metadata,
-					`${this.keyName}.contextInfo`,
-					{},
-				);
+				EasyDB.setObject(metadata, `${this.keyName}.contextInfo`, {});
 			} else {
-				ctx = EasyDB.FindAndGet(
-					metadata,
-					String(`*contextInfo`),
-				);
+				ctx = EasyDB.FindAndGet(metadata, String(`*contextInfo`));
 			}
 			EasyDB.FindAndSet(
 				metadata,
@@ -159,9 +128,7 @@ class createMetadata {
 					this.options.contextInfo,
 					this.options.externalAdReplyInfo
 						? {
-								externalAdReply:
-									this.options
-										.externalAdReplyInfo,
+								externalAdReply: this.options.externalAdReplyInfo,
 						  }
 						: {},
 				),
@@ -171,9 +138,7 @@ class createMetadata {
 		msg = generateWAMessageFromContent(String(this.from), metadata, {
 			userJid: this.sock.authState.creds.me!.id,
 			messageId: GenerateID(),
-			quoted: this.options.quoted
-				? this.options.quoted
-				: undefined,
+			quoted: this.options.quoted ? this.options.quoted : undefined,
 		});
 		if (this.options.contextInfo)
 			EasyDB.setObject(
@@ -182,16 +147,12 @@ class createMetadata {
 				Object.assign(
 					(
 						msg.message?.[
-							Object.keys(
-								msg.message || {},
-							)[0] as keyof proto.IMessage
+							Object.keys(msg.message || {})[0] as keyof proto.IMessage
 						] as any
 					)?.contextInfo,
 					(
 						metadata[
-							Object.keys(
-								metadata || {},
-							)[0] as keyof proto.IMessage
+							Object.keys(metadata || {})[0] as keyof proto.IMessage
 						] as any
 					)?.contextInfo,
 				),
@@ -226,8 +187,7 @@ class createMetadata {
 			this.keyName = `${this.keyName}Message`;
 		} else if (
 			this.keyName === "text" &&
-			Object.keys(this.options as Whatsapp.IOptionsMessage)
-				.length > 0
+			Object.keys(this.options as Whatsapp.IOptionsMessage).length > 0
 		) {
 			this.keyName = "extendedTextMessage";
 		} else if (this.keyName == "text") {
@@ -275,15 +235,11 @@ export default class BulilderMetadata<T extends proto.IMessage> {
 		this.metadata.from = from;
 		return this;
 	}
-	public setContent(
-		content: string | Buffer | Readable,
-	): BulilderMetadata<T> {
+	public setContent(content: string | Buffer | Readable): BulilderMetadata<T> {
 		this.metadata.content = content;
 		return this;
 	}
-	public setOptions(
-		options: Whatsapp.IOptionsMessage,
-	): BulilderMetadata<T> {
+	public setOptions(options: Whatsapp.IOptionsMessage): BulilderMetadata<T> {
 		this.metadata.options = options;
 		return this;
 	}

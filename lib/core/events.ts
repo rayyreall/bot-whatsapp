@@ -4,8 +4,6 @@ import type {
 	ConnectionState,
 	proto,
 	MessageUpdateType,
-	BaileysEventMap,
-	AuthenticationCreds,
 } from "@adiwajshing/baileys";
 import type {Boom} from "@hapi/boom";
 import Logger from "../log";
@@ -13,6 +11,7 @@ import createWA from "./main";
 import {Message} from "./validations";
 import type Whatsapp from "../types";
 import {Events as Ev} from "../events";
+import performa from "performance-now";
 
 export default class Events implements Whatsapp.EventsOperator {
 	private log: Logger | undefined;
@@ -33,8 +32,8 @@ export default class Events implements Whatsapp.EventsOperator {
 	protected checkConnections = (connections: Partial<ConnectionState>) => {
 		if (connections.connection === "close") {
 			if (
-				(connections.lastDisconnect?.error as Boom)?.output
-					?.statusCode !== DisconnectReason.loggedOut
+				(connections.lastDisconnect?.error as Boom)?.output?.statusCode !==
+				DisconnectReason.loggedOut
 			) {
 				createWA(this.sessions, this.log!);
 			} else {
@@ -50,15 +49,11 @@ export default class Events implements Whatsapp.EventsOperator {
 		if (mess.messages[0].message)
 			this.sock.ev.emit(
 				"new-message" as any,
-				new Message(
-					mess.messages[0],
-					this.sock,
-					this.log!,
-				) as any,
+				new Message(mess.messages[0], this.sock, this.log!) as any,
 			);
 	};
 	protected newMsg = async (mess: Message) => {
 		if (!mess.isOwner) return;
-		await Ev.getEvents().commandCall(mess as Whatsapp.ClientType);
+		await Ev.getEvents().commandCall(mess as Whatsapp.ClientType)
 	};
 }
