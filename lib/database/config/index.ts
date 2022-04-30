@@ -22,6 +22,9 @@ export default class Config<T extends object = any>
 	public get config(): IConfig & T {
 		return this.db as IConfig & T;
 	}
+	public set (key: string, value: any) {
+		this.db[key] = value;
+	}
 	public Set(key: any) {
 		for (const k in key) {
 			this.db[k] = key[k];

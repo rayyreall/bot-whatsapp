@@ -6,9 +6,9 @@ import Bluebird from "bluebird";
 import Builder from "./cli";
 import EasyDB, {toBuffer, GenerateID, compressImage} from "../utils";
 import type {FileTypeResult, MimeType} from "file-type";
-import {Events} from "../events";
 import mime from "file-type";
 import {generateWAMessageFromContent, proto} from "@adiwajshing/baileys";
+import PhoneNumber from "awesome-phonenumber";
 
 export default abstract class Client implements Whatsapp.IClient {
 	constructor() {}
@@ -78,14 +78,14 @@ export default abstract class Client implements Whatsapp.IClient {
 
 	public Generate(
 		from: string,
-		content: string | Buffer | Readable,
+		content: string | Buffer | Readable | Whatsapp.ButtonsContent,
 		type: keyof Whatsapp.ContentData,
 		options?: Whatsapp.IOptionsMessage,
 	): Promise<proto.WebMessageInfo>;
 	public Generate(): Builder<proto.IMessage>;
 	public Generate(
 		from?: string,
-		content?: string | Buffer | Readable,
+		content?: string | Buffer | Readable | Whatsapp.ButtonsContent,
 		type?: keyof Whatsapp.ContentData,
 		options?: Whatsapp.IOptionsMessage,
 	): Builder<proto.IMessage> | Promise<proto.WebMessageInfo> {
@@ -98,12 +98,11 @@ export default abstract class Client implements Whatsapp.IClient {
 					type as typeof type,
 					options,
 				);
-				resolve(await m.build());
+				resolve(await m.build().catch((err) => this?.log?.error(err)) as proto.WebMessageInfo);
 			});
 		}
 		return new Builder<proto.IMessage>(this.sock);
 	}
-	public ev: Events = Events.getEvents();
 	public sendFile(
 		from: string,
 		content: string | Buffer | Readable,
@@ -113,15 +112,15 @@ export default abstract class Client implements Whatsapp.IClient {
 			let m: proto.WebMessageInfo;
 			let file: Buffer | null = await toBuffer(content);
 			try {
-				if (!file) return void this.log.error("Your file is undefined");
+				if (!file) return void this?.log?.error("Your file is undefined");
 				let types: FileTypeResult | undefined = await mime.fromBuffer(
 					file as Buffer,
 				);
-				if (!types) return void this.log.error("Your file is undefined");
+				if (!types) return void this?.log?.error("Your file is undefined");
 				let type: keyof Whatsapp.ContentData | undefined = this.ParseExtentions(
 					types.mime,
 				)?.type;
-				if (!type) return void this.log.error("Your file is undefined");
+				if (!type) return void this?.log?.error("Your file is undefined");
 				if (typeof options.mimetype == "undefined")
 					options.mimetype = types.mime;
 				if (options.isDocs) type = "document";
@@ -146,14 +145,14 @@ export default abstract class Client implements Whatsapp.IClient {
 						m = await this.sendSticker(from, file as Buffer, options);
 						break;
 					default:
-						return void this.log.error("Your file is undefined");
+						return void this?.log?.error("Your file is undefined");
 				}
 				resolve(m);
 				m = {} as proto.WebMessageInfo;
 				file = null;
 			} catch (err) {
 				if (err instanceof Error) {
-					this.log.error(err.message);
+					this?.log?.error(err.message);
 				}
 			}
 		});
@@ -166,7 +165,17 @@ export default abstract class Client implements Whatsapp.IClient {
 			let m: proto.WebMessageInfo = await this.Generate(from, content, "text");
 			await this.relayMessage(m);
 			return m;
-		}).catch((err) => this.log.error(err));
+		}).catch((err) => this?.log?.error(err));
+	}
+	public async sendTextWithMentions(from: string, content: string, id?: proto.IWebMessageInfo): Promise<proto.IWebMessageInfo|void> {
+		return Bluebird.try(async () => {
+			let m: proto.WebMessageInfo = await this.Generate(from, content, "text", {
+				mentioned: this.ParsedMentions(content),
+				quoted: id
+			});
+			await this.relayMessage(m);
+			return m;
+		}).catch((err) => this?.log?.error(err));
 	}
 	public async reply(
 		from: string,
@@ -179,7 +188,7 @@ export default abstract class Client implements Whatsapp.IClient {
 			});
 			await this.relayMessage(m);
 			return m;
-		}).catch((err) => this.log.error(err));
+		}).catch((err) => this?.log?.error(err));
 	}
 	public async wait(
 		from: string,
@@ -200,13 +209,13 @@ export default abstract class Client implements Whatsapp.IClient {
 			let file: Buffer | null = await toBuffer(content);
 			let m: proto.WebMessageInfo;
 			try {
-				if (!file) return void this.log.error("Your document is undefined");
+				if (!file) return void this?.log?.error("Your document is undefined");
 				m = await this.Generate(from, file, "document", options);
 				await this.relayMessage(m);
 				resolve(m);
 			} catch (err) {
 				if (err instanceof Error) {
-					this.log.error(err.message);
+					this?.log?.error(err.message);
 				}
 			} finally {
 				file = null;
@@ -224,13 +233,13 @@ export default abstract class Client implements Whatsapp.IClient {
 			let file: Buffer | null = await toBuffer(content);
 			let m: proto.WebMessageInfo;
 			try {
-				if (!file) return void this.log.error("Your audio is undefined");
+				if (!file) return void this?.log?.error("Your audio is undefined");
 				m = await this.Generate(from, file, "audio", options);
 				await this.relayMessage(m);
 				resolve(m);
 			} catch (err) {
 				if (err instanceof Error) {
-					this.log.error(err.message);
+					this?.log?.error(err.message);
 				}
 			} finally {
 				file = null;
@@ -239,9 +248,7 @@ export default abstract class Client implements Whatsapp.IClient {
 			}
 		});
 	}
-	private ParseExtentions(
-		mimeType: MimeType,
-	): {type: keyof Whatsapp.ContentData; ext: string} | undefined {
+	public static ParseExtentions (mimeType: MimeType): {type: keyof Whatsapp.ContentData; ext: string} | undefined {
 		if (mimeType.startsWith("application") || mimeType.startsWith("font")) {
 			return {type: "document", ext: mimeType.split("/")[1]};
 		} else if (mimeType.startsWith("image")) {
@@ -253,6 +260,11 @@ export default abstract class Client implements Whatsapp.IClient {
 			return {type: "audio", ext: mimeType.split("/")[1]};
 		}
 	}
+	private ParseExtentions(
+		mimeType: MimeType,
+	): {type: keyof Whatsapp.ContentData; ext: string} | undefined {
+		return Client.ParseExtentions(mimeType);
+	}
 	public async sendSticker(
 		from: string,
 		content: string | Buffer | Readable,
@@ -262,13 +274,13 @@ export default abstract class Client implements Whatsapp.IClient {
 			let file: Buffer | null = await toBuffer(content);
 			let m: proto.WebMessageInfo;
 			try {
-				if (!file) return void this.log.error("Your sticker is undefined");
+				if (!file) return void this?.log?.error("Your sticker is undefined");
 				m = await this.Generate(from, file, "sticker", options);
 				await this.relayMessage(m);
 				resolve(m);
 			} catch (err) {
 				if (err instanceof Error) {
-					this.log.error(err.message);
+					this?.log?.error(err.message);
 				}
 			} finally {
 				file = null;
@@ -277,19 +289,37 @@ export default abstract class Client implements Whatsapp.IClient {
 			}
 		});
 	}
-	public async sendButtons(from: string, content: Whatsapp.ButtonsContent) {
+	public async sendContact (from: string, content: Whatsapp.ContactsContent, ctx?: proto.IContextInfo): Promise<proto.IWebMessageInfo> {
+		let ph: PhoneNumber = new PhoneNumber(content.phone);
+		const vcard: string = `
+BEGIN:VCARD
+VERSION:3.0
+FN:${content.name}
+TEL;type=CELL;type=VOICE;waid=${content.phone}:${ph.getNumber("international")}
+END:VCARD
+`
+     return await this.relayMessage(await this.prepareMessage(from, proto.Message.fromObject({
+		contactMessage: proto.ContactMessage.fromObject({
+		   displayName: content.name,
+		   vcard,
+		   ...ctx ? { contextInfo: ctx } : {}
+		})
+	})))
+	}
+	public async sendButtons(from: string, content: Whatsapp.ButtonsContent, options?: Whatsapp.MetadataDefault): Promise<proto.WebMessageInfo> {
 		return new Bluebird(async (resolve) => {
-			if (content.buttons.length > 0) {
-				for (let i = 0; i < content.buttons.length; i++) {
-					if (!content.buttons[i].id) content.buttons[i].id = "1";
-					if (!content.buttons[i].type) content.buttons[i].type = 1;
+			let m: proto.WebMessageInfo;
+			try {
+				m = await this.Generate(from, content, "buttons", options);
+				await this.relayMessage(m);
+				resolve(m);
+			} catch (err) {
+				if (err instanceof Error) {
+					this?.log?.error(err.message);
 				}
-			} else {
-				throw new Error("Buttons must have at least one button");
-			}
-			if (!content.headerType && !content.media) content.headerType = 1;
-			else if (!content.headerType && content.media) {
-				// belom kelar
+			} finally {
+				content = {} as Whatsapp.ButtonsContent;
+				m = {} as proto.WebMessageInfo;
 			}
 		});
 	}
@@ -302,7 +332,7 @@ export default abstract class Client implements Whatsapp.IClient {
 			let file: Buffer | null = await toBuffer(content);
 			let m: proto.WebMessageInfo;
 			try {
-				if (!file) return void this.log.error("Your video is undefined");
+				if (!file) return void this?.log?.error("Your video is undefined");
 				if (options.isMentions) {
 					EasyDB.setObject(
 						options,
@@ -318,7 +348,7 @@ export default abstract class Client implements Whatsapp.IClient {
 				resolve(m);
 			} catch (err) {
 				if (err instanceof Error) {
-					this.log.error(err.message);
+					this?.log?.error(err.message);
 				}
 			} finally {
 				file = null;
@@ -336,7 +366,7 @@ export default abstract class Client implements Whatsapp.IClient {
 			let file: Buffer | null = await toBuffer(content);
 			let m: proto.WebMessageInfo;
 			try {
-				if (!file) return void this.log.error("Your image is undefined");
+				if (!file) return void this?.log?.error("Your image is undefined");
 				if (options.isMentions) {
 					EasyDB.setObject(
 						options,
@@ -352,7 +382,7 @@ export default abstract class Client implements Whatsapp.IClient {
 				resolve(m);
 			} catch (err) {
 				if (err instanceof Error) {
-					this.log.error(err.message);
+					this?.log?.error(err.message);
 				}
 			} finally {
 				file = null;
@@ -407,7 +437,7 @@ export default abstract class Client implements Whatsapp.IClient {
 		return new Bluebird<proto.IWebMessageInfo>(async (resolve) => {
 			try {
 				if (!content.key)
-					return void this.log.error("Your key WebMessageInfo is undefined");
+					return void this?.log?.error("Your key WebMessageInfo is undefined");
 				await this.sock.relayMessage(
 					String(content.key.remoteJid),
 					content.message as proto.IMessage,
@@ -417,7 +447,7 @@ export default abstract class Client implements Whatsapp.IClient {
 				content = null as unknown as proto.IWebMessageInfo;
 			} catch (e) {
 				if (e instanceof Error) {
-					this.log.error(e.message);
+					this?.log?.error(e.message);
 				}
 			}
 		});

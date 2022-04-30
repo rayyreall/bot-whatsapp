@@ -25,6 +25,7 @@ export function Config(config: Partial<Whatsapp.MyEvents>) {
 					config.errorHandle.warningUser = true;
 				if (!config.eventName)
 					config.eventName = crypto.randomBytes(30).toString("hex");
+				if (typeof config.group == "undefined") config.group = "random";
 				if (!config.costumePrefix)
 					config.costumePrefix = {
 						isPrefix: true,

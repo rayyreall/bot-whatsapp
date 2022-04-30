@@ -1,1 +1,7 @@
 node_modules
+config.json
+lib/database/sessions/sessions.json
+lib/database/keys/*.json
+lib/test
+dist
+cmd.bash

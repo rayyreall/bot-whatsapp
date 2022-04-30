@@ -6,8 +6,8 @@ import axios from "axios";
 import Bluebird from "bluebird";
 import type Logger from "../log";
 import type Whatsapp from "../types";
-import type {Prefix} from "../types";
-import {checkPrefix, DEFAULT_PREFIX} from "../utils";
+import type {Prefix, IUserConfig } from "../types";
+import {checkPrefix, DEFAULT_PREFIX, ParseCommand } from "../utils";
 import chalk from "chalk";
 import moment from "moment-timezone";
 import Controller from "../routers/controllers";
@@ -15,6 +15,8 @@ import NodeCache from "node-cache";
 import lodash from "lodash";
 import performa from "performance-now";
 import config from "../database/config";
+import * as ts from "typescript";
+import util from "util";
 
 moment.tz.setDefault("Asia/Jakarta").locale("id");
 
@@ -46,22 +48,44 @@ export class Events {
 			throw new Error("folder location not defined");
 		this.file = this.file || [];
 		fs.readdirSync(this.location).forEach((files) => {
-			if (/(\.js|\.ts)$/.test(files) && !/^index\./g.test(files))
+			if (/(\.js|\.ts)$/.test(files) && !/^index\./g.test(files) && !/-leak\./g.test(files))
 				this.file!.push(path.join(this.location!, files));
 		});
 	}
 	public async load(): Promise<void> {
-		this.getFile();
+		if (this.file?.length == 0 || !this.file) this.getFile();
 		if (typeof this.file == "undefined") throw new Error("file not defined");
 		for (const index of this.file) {
 			await this.forFile(index).catch((err) => this.log?.error(err));
 		}
 		return void 0;
 	}
-	public async commandCall(client: Whatsapp.ClientType) {
+	public clear () {
+		this.db.reset();
+	}
+	public getCommandLeaking = async () => {
+		this.file = [];
+		let file: Array<string> = fs.readdirSync(this.location!).filter((files) => /-leak\./g.test(files) && /(\.js|\.ts)$/.test(files))
+		file.forEach((files) => {
+			this.file!.push(path.join(this.location!, files));
+		})
+		await this.load();
+		this.file = [];
+	}
+	public async commandCall(client: Whatsapp.ClientType, callback?: (client: Whatsapp.ClientType) => void) {
 		return new Bluebird(async (resolve, reject) => {
+			callback?.(client)
+			if (!client.isOwner && !config.create().config.status) return;
 			let event: Array<Whatsapp.CommandEvents> = this.setToArrayEvents();
+			const { isOwner, from, sender, id, command, isGroupMsg, args, isMedia, prefix} = client;
+			let mess: any = client;
+			let conn: Partial<IUserConfig> | undefined = config.create<{ user: Array<IUserConfig>}>().config.user.find((user) => user.id == sender) || {};
+			if (!isOwner && conn?.banned) return;
 			let m: any;
+			if (!isOwner && conn) {
+				event = event.filter((e) => !conn?.permissions?.some((permission) => permission == e.eventName))
+				event = event.filter((e) => !conn?.disable?.some((disable) => disable == e.eventName))
+			}
 			let participations = (): Promise<unknown> =>
 				new Bluebird.Promise(async () =>
 					event.filter(
@@ -76,7 +100,7 @@ export class Events {
 										ev: v.ev ? Events.getEvents() : void 0,
 										...v?.optionsFunc,
 									};
-									m = await v.run.call(conf, client);
+									m = await v.run.call(conf, mess);
 									conf = null as any;
 								}).catch((e) => {
 									if (e instanceof Error) {
@@ -90,6 +114,7 @@ export class Events {
 					),
 				);
 			participations();
+			if (!command) return;
 			participations = () =>
 				new Bluebird.Promise(async (resolve) => {
 					event.forEach(
@@ -98,9 +123,9 @@ export class Events {
 								return;
 							let prefix: Prefix | undefined = checkPrefix(
 								value.costumePrefix?.prefix || DEFAULT_PREFIX,
-								client.command || "",
+								command || "",
 							);
-							let body: string = client.command;
+							let body: string = command;
 							if (
 								(typeof value.command === "string" &&
 									(value.costumePrefix?.isPrefix ? prefix?.prefix : "") +
@@ -117,26 +142,28 @@ export class Events {
 											(v instanceof RegExp && v.test(body)),
 									))
 							) {
-								let idSpam: string = client.sender;
+								let idSpam: string = sender;
 								if (antiSpam.has(`${idSpam}::2`))
 									return void this.log!.warn(`${idSpam} is spamming`);
-								if (antiSpam.has(`${idSpam}::1`)) {
+								if (!client.isOwner && antiSpam.has(`${idSpam}::1`)) {
 									antiSpam.set(`${idSpam}::2`, true);
 									return client.reply(
-										client.from,
+										from,
 										"*「❗」* Mohon maaf kak, anda terdeteksi Spam harap tunggu beberapa saat untuk menggunakan command kembali",
-										client.id,
+										id,
 									);
 								}
-								if (!client.isOwner) antiSpam.set(`${idSpam}::1`, true);
-								if (value.isOwner && !client.isOwner) return;
-								if (value.isGroupMsg && !client.isGroupMsg) return;
-								if (value.isMedia && !client.isMedia)
+								if (!isOwner) antiSpam.set(`${idSpam}::1`, true);
+								if (value.isOwner && !isOwner) return;
+								if (value.isGroupMsg && !isGroupMsg) return;
+								if (typeof value.cmdInfo == "string" && ParseCommand<{ help?: string}>(args?.join(" ") || "")?.help) return client.reply(from, value.cmdInfo, id);
+								if (value.isMedia && !isMedia)
 									return client.reply(
-										client.from,
+										from,
 										"*「❗」* Mohon maaf kak, Harap masukkan media kakak untuk menggunakan fitur ini",
-										client.id,
+										id,
 									);
+								if (value.isQuerry && typeof args[0] === "undefined") return client.reply(from, `*「❗」* Mohon maaf kak, Harap masukkan query kakak untuk menggunakan fitur ini`, id);
 								if (value.enable && (value.execute as unknown)) {
 									let {from, id, realOwner, command} = client;
 									Bluebird.try(async () => {
@@ -148,7 +175,8 @@ export class Events {
 											ev: value.ev ? Events.getEvents() : void 0,
 											...value?.optionsFunc,
 										};
-										m = await value.execute.call(conf, client);
+										m = await value.execute.call(conf, mess);
+										mess = null
 										m = null;
 										conf = null as any;
 									})
@@ -316,7 +344,7 @@ export class Events {
 				delete build.open;
 			}
 			const name: string = build.eventName.toLowerCase();
-			delete build.eventName;
+			build.eventName = name;
 			this.db.set(name, build);
 			build = null;
 			con = null;
@@ -346,6 +374,7 @@ export class Events {
 		return void this.db.update(key, value);
 	}
 	public async refresh(): Promise<void> {
+		this.clear()
 		return void (await this.load());
 	}
 	public setToArrayEvents(): Array<Whatsapp.CommandEvents> {

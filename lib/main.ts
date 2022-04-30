@@ -6,7 +6,7 @@ import path from "path";
 import createWA from "./core/main";
 import {Events} from "./events";
 import chalk from "chalk";
-import type {ProcessModel, ConfigGlobal} from "./types";
+import type {ProcessModel, ConfigGlobal  } from "./types";
 config();
 
 export const start = async () => {
@@ -26,6 +26,9 @@ export const start = async () => {
 		loggerConfig: {
 			mode: process.env.mode,
 		},
+		status: false,
+		user: [],
+		memory: "low"
 	});
 	const color = (text: string, color: string) => {
 		return !color ? chalk.green(text) : chalk.keyword(color)(text);
@@ -79,7 +82,7 @@ export const start = async () => {
 		logger: Log,
 	});
 	db.Utility(Log);
-	await db.connect();
+	await db.connect(proses.some((p) => p == "resetdb") ? path.join(path.resolve("./"),"./lib/database/sessions/sessions.json",) : undefined);
 };
 
 start();

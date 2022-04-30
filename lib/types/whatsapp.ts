@@ -1,11 +1,10 @@
-import type {proto} from "@adiwajshing/baileys";
+import type {proto, WASocket } from "@adiwajshing/baileys";
 import type {$Values} from "utility-types";
 import type {MimeType} from "file-type";
 import type {Readable} from "stream";
 import type Logger from "../log";
 import type Builder from "../core/cli";
 import {Prefix} from ".";
-import {Events} from "../events";
 
 export namespace Whatsapp {
 	export interface EventsOperator {
@@ -42,12 +41,14 @@ export namespace Whatsapp {
 		ownerNumber: Array<string>;
 		isOwner: boolean;
 		realOwner: string;
+		isBot: boolean;
 		decryptMedia(media?: IMedia): Promise<Buffer>;
 		ParsedMentions(text: string): Array<string>;
 		downloadMedia(media: IMedia, path?: string): Promise<string>;
 		downloadMedia(path?: string): Promise<string>;
 		downloadMedia(media?: IMedia | string, path?: string): Promise<string>;
 		GetSerialize(): SerializeMessage;
+		SerializeParsed (): SerializeMessage 
 		serializeJID(jid: string): string;
 	}
 	export interface IClient {
@@ -77,16 +78,19 @@ export namespace Whatsapp {
 			from: string,
 			content: string,
 		): Promise<proto.WebMessageInfo | void>;
+		sendTextWithMentions(from: string, content: string, id?: proto.IWebMessageInfo): Promise<proto.IWebMessageInfo|void>
 		reply(
 			from: string,
 			content: string,
 			id?: proto.IWebMessageInfo,
 		): Promise<proto.WebMessageInfo | void>;
+		sendButtons(from: string, content: Whatsapp.ButtonsContent, options?: Whatsapp.MetadataDefault): Promise<proto.WebMessageInfo>
 		sendDocument(
 			from: string,
 			content: string | Buffer | Readable,
 			options: Whatsapp.MetadataDocument,
 		): Promise<proto.WebMessageInfo>;
+		sendContact (from: string, content: Whatsapp.ContactsContent, ctx?: proto.IContextInfo): Promise<proto.IWebMessageInfo>;
 		sendAudio(
 			from: string,
 			content: string | Buffer | Readable,
@@ -115,7 +119,7 @@ export namespace Whatsapp {
 		relayMessage(
 			content: proto.IWebMessageInfo,
 		): Promise<proto.IWebMessageInfo>;
-		ev: Events;
+		sock: WASocket;
 	}
 	export type ClientType = IClient & SerializeMessage;
 
@@ -127,18 +131,24 @@ export namespace Whatsapp {
 		ev?: boolean;
 	}
 	export interface IButtons {
-		id?: string;
-		text: string;
-		type?: number;
+		buttonId?: string;
+		buttonText: string;
+		type?: proto.Button.ButtonType;
+		nativeFlowInfo?: proto.INativeFlowInfo;
 	}
 	export interface ButtonsContent {
+		contentText?: string;
+		footerText?: string;
+		buttons:  IButtons[];
+		headerType?: proto.ButtonsMessage.ButtonsMessageHeaderType;
 		text?: string;
-		subtitle?: string;
-		buttons: IButtons[];
-		headerType?: number;
-		media?: Buffer | string | Readable;
+		media?: string | Buffer | Readable;
+		locations?: proto.ILocationMessage;
 		isDocs?: boolean;
-		isLocation?: boolean;
+	}
+	export interface ContactsContent {
+		name: string;
+		phone: string;
 	}
 	export type MediaSupport =
 		| "imageMessage"
@@ -163,6 +173,7 @@ export namespace Whatsapp {
 		caption?: string;
 		ptt?: boolean;
 		seconds?: number;
+		mentioned?: Array<string>
 	}
 	export interface ContentData {
 		image: string | Buffer | Readable;
@@ -171,6 +182,7 @@ export namespace Whatsapp {
 		document: string | Buffer | Readable;
 		audio: string | Buffer | Readable;
 		text: string;
+		buttons: ButtonsContent;
 	}
 	export interface MetadataDefault {
 		quoted?: proto.IWebMessageInfo;
@@ -212,6 +224,9 @@ export namespace Whatsapp {
 		isOwner: boolean;
 		isMedia: boolean;
 		errorHandle: Partial<IErrorHandling>;
+		cmdInfo: string;
+		description: string;
+		isQuerry: boolean;
 	}
 	export interface AddEvents {
 		utils?: boolean;

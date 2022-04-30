@@ -5,7 +5,10 @@ import crypto from "crypto";
 import sharp from "sharp";
 import Bluebird from "bluebird";
 import parsems, {Parsed} from "parse-ms";
-import type {Prefix} from "../types";
+import lodash from "lodash";
+import { get } from "fast-levenshtein";
+import { remove } from "diacritics";
+import type {Prefix, OptionsAttemps } from "../types";
 
 export const searchJSON = <T>(
 	obj: any,
@@ -113,6 +116,9 @@ export function* DeepKeysObject<T extends object>(
 export const GenerateID = (): string => {
 	return "R4B0T" + crypto.randomBytes(15).toString("hex").toUpperCase();
 };
+export function persen(awal: number, diskon: number){
+	return awal - (awal * (diskon / 100));
+}
 
 export const toBuffer = async function (
 	content: string | Buffer | Readable,
@@ -197,3 +203,70 @@ export const runtime = (): string => {
 
 export const DEFAULT_PREFIX: string | RegExp | Array<string | RegExp> =
 	/^[°•π÷×¶∆£¢€¥®™+✓_=|~!?@#$%^&.©^]/gi;
+
+
+export function ParseCommand <T = Record<string, string| undefined>>(str: string, parse: boolean = true): T {
+		let data: Record<string, string| undefined> = {};
+		str.split("--").forEach(v => {
+			let arg: string[] = v.split(" ").filter((value) => value)
+			if (arg.length > 1) {
+				data[arg[0]] = arg.slice(1).join(" ");
+			} else if (arg.length == 1){
+				(data as any)[arg[0] as any] = parse ? true : undefined;
+			}
+		})
+		data = Object.keys(data).reduce((acc: Record<string, string| undefined>, key) => {
+			if (typeof data[key] !== "undefined") {
+				acc[key] = data[key];
+			}
+			return acc
+		}, {})
+		return data as unknown as T;
+	}
+	export async function ErrorHandle<V = any>(func: Array<any>| any, parameters: any, options: Partial<OptionsAttemps> = {}, callback?: (attemps: number, deskriptor?: string) => void, at: number = 1): Promise<V> {
+		if (!Array.isArray(func)) {
+			func = [func];
+			if (typeof options.limitError == "number") {
+				func = lodash.times(options.limitError, () => func).flat()
+				parameters = lodash.times(options.limitError, () => parameters)
+			}
+		}
+		try {
+			let data = await func[0](...parameters[0]);
+			return data;
+		} catch (err) {
+			func.shift();
+			parameters.shift();
+			if (func.length > 0) {
+				if (callback) {
+					callback(at, options.description?.[0])
+					at++;
+					if (typeof options.description !== "undefined" && options.description.length > 1) options.description.shift();
+				}
+				return await ErrorHandle(func, parameters, options, callback,at);
+			} else {
+				throw err;
+			}
+		}
+	}
+
+	export function Delay (ms: number): Promise<void> {
+		return new Bluebird((resolve) => setTimeout(resolve, ms))
+	}
+
+export function check (kata: string, validasi: string): number  {
+		kata = remove(kata.toLocaleLowerCase().replace(/[^\w]+/g, ''));
+		validasi =  remove(validasi.toLocaleLowerCase().replace(/[^\w]+/g, ''));
+		let hitung: number = 1 - (get(kata, validasi) / Math.max(Math.max(kata.length, validasi.length), 1))
+		let hasil: string = (hitung * 100).toFixed(2)
+		return Number(hasil)
+}
+export function checkMatch (str: string, arr: string[]): Array<Array<string|unknown>> {
+	let obj: { [k: string]: number } = {}
+	for (const index of arr) {
+		if (!obj[index]) {
+			obj[index] = check(str, index)
+		}
+	}
+	return Object.entries(obj).sort((a: [string, number], b: [string, number]) => b[1] - a[1]).filter((a: [string,number]) => a[1] > 65.00);
+}

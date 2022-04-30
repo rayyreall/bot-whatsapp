@@ -2,7 +2,6 @@ import Command, {Config, Whatsapp, Get} from ".";
 
 @Config({
 	command: ["sticker", "s", "stiker"],
-	isOwner: true,
 	isMedia: true,
 	help: ["sticker"],
 	group: "converter",
@@ -10,6 +9,8 @@ import Command, {Config, Whatsapp, Get} from ".";
 		attempts: 3,
 		warningUser: true,
 	},
+	description: "<author|pack>",
+	eventName: "sticker"
 })
 export default class extends Command implements Whatsapp.MyCmd {
 	constructor() {
@@ -18,6 +19,7 @@ export default class extends Command implements Whatsapp.MyCmd {
 	@Get("API", "utils")
 	override async execute(client: Whatsapp.ClientType): Promise<any> {
 		const {args, from, id, realOwner, media} = client;
+		console.log({ media})
 		await client.wait(from, id);
 		let file: Buffer | null = await client.decryptMedia(media!);
 		let api: string | void = await new (this.API!("sticker"))(

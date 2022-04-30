@@ -1,15 +1,6 @@
-import path from "path";
-import lodash from "lodash";
+import os from "os";
+import { check } from "../utils";
 
 (async () => {
-	let p = () =>
-		new Promise((resolve) =>
-			setTimeout(() => {
-				console.log("end");
-			}, 5000),
-		);
-	console.log("j");
-	p();
-	console.log("p");
-	console.log("k");
+	console.log(check("aku", "aku"))
 })();

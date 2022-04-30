@@ -1,4 +1,4 @@
-import WASocket, {useSingleFileAuthState} from "@adiwajshing/baileys";
+import WASocket, { useSingleFileAuthState, BufferJSON } from "@adiwajshing/baileys";
 import EsPino from "pino";
 import {fetchNewWAVersions, DEFAULT_VERSION} from "../database/config";
 import type {WASocket as Socket} from "@adiwajshing/baileys";
@@ -6,15 +6,16 @@ import Events from "./events";
 import Log from "../log";
 import type Whatsapp from "../types";
 
-let states: ReturnType<typeof useSingleFileAuthState> | undefined;
+let Auth: ReturnType<typeof useSingleFileAuthState> | undefined;
+
 export default async function createWA(
 	sessions: string,
 	logger: Log,
 ): Promise<Socket> {
-	if (!states) states = useSingleFileAuthState(sessions);
+	if (!Auth) Auth = useSingleFileAuthState(sessions)
 	const sock: Socket = WASocket({
 		printQRInTerminal: true,
-		auth: states.state,
+		auth: Auth.state,
 		version: await fetchNewWAVersions().catch(() => DEFAULT_VERSION),
 		logger: EsPino({
 			level: "silent",
@@ -24,7 +25,7 @@ export default async function createWA(
 	});
 	const events: Whatsapp.EventsOperator = new Events(
 		sock,
-		states.saveState,
+		() => void 0,
 		sessions,
 	);
 	events.setUtils(logger);

@@ -19,9 +19,21 @@ export interface Adabter<T> {
 	write(data: T): void;
 	read(): Promise<void>;
 }
+export interface OptionsAttemps {
+	limitError: number;
+	description: Array<string>;
+}
 
 export interface Prefix {
 	isMatch: true;
 	prefix: string;
 	body: string;
 }
+
+export enum Memory {
+	warn = 1,
+	medium = 1,
+	leak = 1,
+	danger = 1
+}
+export type MemoryType = "low" | "warn" | "medium" | "leak" | "danger";

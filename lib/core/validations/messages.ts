@@ -32,7 +32,7 @@ export class Message
 	) {
 		super();
 		this.db = new NodeCache({
-			stdTTL: 3,
+			stdTTL: 5,
 		});
 		this.serialize(msg);
 		msg = null as unknown as proto.IWebMessageInfo;
@@ -52,6 +52,7 @@ export class Message
 			this.db.set("isGroupMsg", this.getDB("from").endsWith("@g.us"));
 			this.db.set("fromMe", msg.key.fromMe);
 			this.db.set("pushName", msg.pushName);
+			this.db.set("isBot", !!msg.key.id?.startsWith("R4B0T"))
 			this.db.set(
 				"sender",
 				msg.key.fromMe
@@ -357,6 +358,9 @@ export class Message
 			(v) => v.v,
 		) as unknown as Whatsapp.SerializeMessage;
 	}
+	public SerializeParsed (): Whatsapp.SerializeMessage  {
+		return lodash.omitBy(this.GetSerialize(), (v) => v == null || v == undefined) as Whatsapp.SerializeMessage;
+	}
 	public serializeJID(jid: string): string {
 		if (/@g.us/gi.test(jid)) {
 			return jid;
@@ -452,5 +456,8 @@ export class Message
 	}
 	public get isOwner(): boolean {
 		return this.getDB("isOwner");
+	}
+	public get isBot(): boolean {
+		return this.getDB("isBot");
 	}
 }
