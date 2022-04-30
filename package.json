@@ -8,7 +8,7 @@
     "test": "ts-node ./lib/test/index.ts --dev",
     "lint": "eslint --fix --ext .ts,.json .",
     "debug": "jest --runInBand --watchAll",
-    "start": "yarn build && yarn start:dev",
+    "start": "yarn running",
     "start:client": "node ./dist/lib/main.js --client",
     "start:dev": "node ./dist/lib/main.js --dev",
     "start:resetdb": "node ./dist/lib/main.js --resetdb",
